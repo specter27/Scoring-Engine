@@ -2,18 +2,25 @@ import re
 # This class is responsible for formatting/sanitizing the resume.txt file
 class Sanitisor:
 
-    __filename = ""
-    __cleaned_resume_txt = []
+    __file_path = ""
+    __cleaned_file_txt = []
+    __file_type = 0
     __sanitisation_check = False
-    def __init__(self,filename, cleanup_check):
-        self.__filename = filename
+    def __init__(self,file_path,filename, cleanup_check, file_type):
+        self.__file_path = file_path
         self.__sanitisation_check = cleanup_check
-        self.__start_sanitization()
+        self.__file_type = file_type
+        self.__start_sanitization(filename)
 
-    def __start_sanitization(self):
-        cleaned_resume_path = f"cleaned_resumes/cleaned_{self.__filename}"
+
+    def __start_sanitization(self, filename):
+        if self.__file_type == 0:
+            cleaned_file_path = "cleaned_resumes/cleaned_" + filename + "_resume.txt"
+        else:
+            cleaned_file_path = "cleaned_job-descriptions/cleaned_" + filename + "_job-description.txt"
+
         # Open the input file in read mode and the output file in write mode
-        with open(self.__filename, 'r') as input_file, open(cleaned_resume_path, 'w') as output_file:
+        with open(self.__file_path, 'r') as input_file, open(cleaned_file_path, 'w') as output_file:
             # Loop through each line in the input file
             for line in input_file:
 
@@ -40,21 +47,24 @@ class Sanitisor:
                         line = re.sub(trailing_space_regex, '', line)
                     line = line.replace("\n", " ")
 
-
-
+                    # 3. Removing the bullets from the content
+                    line = line.replace("•", "").replace("*", "").replace("-", "")
 
                 # Write the modified line to the output file
                 output_file.write(line)
 
-        file = open(cleaned_resume_path, 'r')
+        file = open(cleaned_file_path, 'r')
 
         # Loop through each line in the file and append it to the list
         for line in file:
-            self.__cleaned_resume_txt.append(line)
+            # clear the file first
+            self.__cleaned_file_txt.clear()
+            self.__cleaned_file_txt.append(line)
+
 
         # Close the file
         file.close()
 
-    def get_cleaned_resume(self):
-        return self.__cleaned_resume_txt
+    def get_cleaned_file(self):
+        return self.__cleaned_file_txt
 
