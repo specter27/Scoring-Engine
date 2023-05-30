@@ -1,6 +1,5 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import pandas as pd
 from Extractor import Extractor
 
 def pad_matrix(matrix_to_pad, matrix_to_refer):
@@ -14,11 +13,26 @@ def pad_matrix(matrix_to_pad, matrix_to_refer):
 
     return padded_matrix
 
+def sync_resume_vector(resume_vector, resume_tokens, jd_tokens, shape):
+    # print(shape)
+    synced_resume_vector = []
+    fetched_vector = []
+    for token_name in jd_tokens:
+        try:
+            target_index = resume_tokens.tolist().index(token_name)
+            fetched_vector.append(resume_vector.toarray()[0, target_index])
+        except ValueError:
+            fetched_vector.append(0)
+
+    synced_resume_vector.append(fetched_vector)
+
+
+    return synced_resume_vector
+
 
 # 1. Get uploaded files local path
-uploaded_resume_path = "resumes/Resume.docx"
-uploaded_job_description_path = "job_descriptions/jd-sample.pdf"
-
+uploaded_resume_path = "resumes/Resume_RBC.docx"
+uploaded_job_description_path = "job_descriptions/jd_RBC_R-0000057526.docx"
 # 2. Converting Documents to their corresponding term matrix
 
 # 2a_1. extracting & writing the resume content into text file
@@ -29,7 +43,7 @@ vectorizer1 = TfidfVectorizer(stop_words='english')
 # resume_vector:- is a type of csr matrix
 resume_vector = vectorizer1.fit_transform(extracted_resume.get_sanitised_file())
 # 2a_4. extract keywords from resume
-# resume_tokens = vectorizer1.get_feature_names_out()
+resume_tokens = vectorizer1.get_feature_names_out()
 # print(f"resume_tokens:-{resume_tokens}")
 
 # TODO: Uncomment to code below for debugging purpose only
@@ -46,12 +60,13 @@ resume_vector = vectorizer1.fit_transform(extracted_resume.get_sanitised_file())
 # 2b_1. extracting & writing the job-description content into text file
 extracted_job_description = Extractor(uploaded_job_description_path, True, 1)
 # 2b_2. create a TfidfVectorizer object to calculate TF-IDF scores
+# set stop_words parameter to 'english' in order
 vectorizer2 = TfidfVectorizer(stop_words='english')
 # 2b_3. Calculate the TF-IDF vector for the job_description
 # jd_vector:- is a type of csr matrix
 jd_vector = vectorizer2.fit_transform(extracted_job_description.get_sanitised_file())
 # 2c_4. extract keywords from job_description
-# jd_tokens = vectorizer2.get_feature_names_out()
+jd_tokens = vectorizer2.get_feature_names_out()
 # print(f"jd_tokens:-{jd_tokens}")
 # TODO: Uncomment to code below for debugging purpose only
 # print(f"jd vector shape before padding:- {jd_vector.shape}")
@@ -60,17 +75,21 @@ jd_vector = vectorizer2.fit_transform(extracted_job_description.get_sanitised_fi
 # ----------------------------------------------------------------------------
 
 # 3. Padding the jd_vector to match resume_vector dimensions
-padded_jd_vector = pad_matrix(jd_vector.toarray(), resume_vector.toarray())
-print(f"jd vector shape after padding:- rows={len(padded_jd_vector)} columns={len(padded_jd_vector[0])}")
+# padded_jd_vector = pad_matrix(jd_vector.toarray(), resume_vector.toarray())
+# print(f"jd vector shape after padding:- rows={len(padded_jd_vector)} columns={len(padded_jd_vector[0])}")
 # print(padded_jd_vector)
+
+# 3.
+synced_resume = sync_resume_vector(resume_vector, resume_tokens, jd_tokens, jd_vector.shape)
+# print(f"synced_resume:- {synced_resume}")
 
 
 # 4. Calculate the cosine similarity between the query and the documents
-cosine_similarities = cosine_similarity(resume_vector.toarray(), padded_jd_vector)
+cosine_similarities = cosine_similarity(synced_resume, jd_vector.toarray())
 
 # 5. Extract the similarity value
 cosine_similarity_value = cosine_similarities[0][0]
 
 # Print the cosine similarity values
-print(cosine_similarity_value)
+print(f"MATCH SCORE (based on cosine-similarity of the documents term matrix):- {cosine_similarity_value}")
 
