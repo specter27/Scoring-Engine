@@ -16,6 +16,7 @@ def pad_matrix(matrix_to_pad, matrix_to_refer):
 def sync_resume_vector(resume_vector, resume_tokens, jd_tokens, shape):
     # print(shape)
     synced_resume_vector = []
+    missing_tokens = []
     fetched_vector = []
     for token_name in jd_tokens:
         try:
@@ -23,18 +24,19 @@ def sync_resume_vector(resume_vector, resume_tokens, jd_tokens, shape):
             fetched_vector.append(resume_vector.toarray()[0, target_index])
         except ValueError:
             fetched_vector.append(0)
+            missing_tokens.append(token_name)
 
     synced_resume_vector.append(fetched_vector)
 
 
-    return synced_resume_vector
+    return {'synced_resume_vector': synced_resume_vector, 'missing_tokens': missing_tokens}
 
 
 # 1. Get uploaded files local path
 uploaded_resume_path = "resumes/Resume_RBC.docx"
-uploaded_job_description_path = "job_descriptions/jd_RBC_R-0000057526.docx"
-# 2. Converting Documents to their corresponding term matrix
+uploaded_job_description_path = "job_descriptions/jd_extreme-networks.docx"
 
+# 2. Converting Documents to their corresponding term matrix
 # 2a_1. extracting & writing the resume content into text file
 extracted_resume = Extractor(uploaded_resume_path, True, 0)
 # 2a_2. create a TfidfVectorizer object to calculate TF-IDF scores
@@ -44,7 +46,7 @@ vectorizer1 = TfidfVectorizer(stop_words='english')
 resume_vector = vectorizer1.fit_transform(extracted_resume.get_sanitised_file())
 # 2a_4. extract keywords from resume
 resume_tokens = vectorizer1.get_feature_names_out()
-# print(f"resume_tokens:-{resume_tokens}")
+print(f"resume_tokens:-{resume_tokens}")
 
 # TODO: Uncomment to code below for debugging purpose only
 # print(f"resume vector shape:- {resume_vector.shape}")
@@ -80,16 +82,21 @@ jd_tokens = vectorizer2.get_feature_names_out()
 # print(padded_jd_vector)
 
 # 3.
-synced_resume = sync_resume_vector(resume_vector, resume_tokens, jd_tokens, jd_vector.shape)
+results = sync_resume_vector(resume_vector, resume_tokens, jd_tokens, jd_vector.shape)
 # print(f"synced_resume:- {synced_resume}")
 
 
 # 4. Calculate the cosine similarity between the query and the documents
-cosine_similarities = cosine_similarity(synced_resume, jd_vector.toarray())
+cosine_similarities = cosine_similarity(results['synced_resume_vector'], jd_vector.toarray())
 
 # 5. Extract the similarity value
 cosine_similarity_value = cosine_similarities[0][0]
+print("-------------MISSING TOKENS-----------------")
+for index, value in enumerate(results['missing_tokens']):
+    print(f"{index+1}. {value}")
+print("---------------------------------------------")
+
 
 # Print the cosine similarity values
-print(f"MATCH SCORE (based on cosine-similarity of the documents term matrix):- {cosine_similarity_value}")
+print(f"MATCH SCORE (based on cosine-similarity of the documents term vectors):- {cosine_similarity_value}")
 
