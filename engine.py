@@ -34,7 +34,7 @@ def sync_resume_vector(resume_vector, resume_tokens, jd_tokens, shape):
 
 # 1. Get uploaded files local path
 uploaded_resume_path = "resumes/Resume_RBC.docx"
-uploaded_job_description_path = "job_descriptions/jd_extreme-networks.docx"
+uploaded_job_description_path = "job_descriptions/jd_s&p.docx"
 
 # 2. Converting Documents to their corresponding term matrix
 # 2a_1. extracting & writing the resume content into text file
